@@ -4,22 +4,177 @@ using Emgu.CV;
 using System.Drawing;
 using UnityEngine;
 
-class GestureRecognition
+class GestureRecognition 
 {
-    Image<Bgr, Byte> background, currentFrame, currentFrameCopy;
-    Capture grabber;
-    bool backgroundSaved = false;
-    Seq<MCvConvexityDefect> defects;
-    MCvConvexityDefect[] defectArray;
-    MCvBox2D box;
-    int fingerNumStable = 0, fingerNumLast = 0, fingerNumCurrent = 0, fingerCycleCount = 0;
-    float nextTime, xHandPosition = 0.5f, yHandPosition = 0.5f;
+    private Image<Bgr, Byte> background, currentFrame, currentFrameCopy;
+    private Capture grabber;
+    private bool backgroundSaved = false;
+    private Seq<MCvConvexityDefect> defects;
+    private MCvConvexityDefect[] defectArray;
+    private MCvBox2D box;
+    private int fingerNumStable = 0, fingerNumLast = 0, fingerNumCurrent = 0, fingerCycleCount = 0, cameraId = 0, numCyclesFingerChange = 3, minArea = 5000, widthProp = 3, heightProp = 4;
+    private float nextTime, xHandPosition = 0.5f, yHandPosition = 0.5f, xMarginMultiplier = 0.8f, yMarginMultiplier = 0.6f, refreshInterval = 0.1f;
+
+    public int NumCyclesFingerChange
+    {
+        get
+        {
+            return numCyclesFingerChange;
+        }
+
+        set
+        {
+            numCyclesFingerChange = value;
+        }
+    }
+
+    public int MinArea
+    {
+        get
+        {
+            return minArea;
+        }
+
+        set
+        {
+            minArea = value;
+        }
+    }
+
+    public int WidthProp
+    {
+        get
+        {
+            return widthProp;
+        }
+
+        set
+        {
+            widthProp = value;
+        }
+    }
+
+    public int HeightProp
+    {
+        get
+        {
+            return heightProp;
+        }
+
+        set
+        {
+            heightProp = value;
+        }
+    }
+
+    public float XMarginMultiplier
+    {
+        get
+        {
+            return xMarginMultiplier;
+        }
+
+        set
+        {
+            xMarginMultiplier = value;
+        }
+    }
+
+    public float YMarginMultiplier
+    {
+        get
+        {
+            return yMarginMultiplier;
+        }
+
+        set
+        {
+            yMarginMultiplier = value;
+        }
+    }
+
+    public float RefreshInterval
+    {
+        get
+        {
+            return refreshInterval;
+        }
+
+        set
+        {
+            refreshInterval = value;
+        }
+    }
+
+    public int FingerNumStable
+    {
+        get
+        {
+            return fingerNumStable;
+        }
+
+        set
+        {
+            fingerNumStable = value;
+        }
+    }
+
+    public float XHandPosition
+    {
+        get
+        {
+            return xHandPosition;
+        }
+
+        set
+        {
+            xHandPosition = value;
+        }
+    }
+
+    public float YHandPosition
+    {
+        get
+        {
+            return yHandPosition;
+        }
+
+        set
+        {
+            yHandPosition = value;
+        }
+    }
+
+    public int CameraId
+    {
+        get
+        {
+            return cameraId;
+        }
+
+        set
+        {
+            cameraId = value;
+        }
+    }
+
+    public GestureRecognition(int cameraId, int numCyclesFingerChange, int minArea, int widthProp, int heightProp, float xMarginMultiplier, float yMarginMultiplier, float refreshInterval)
+    {
+        CameraId = cameraId;
+        NumCyclesFingerChange = numCyclesFingerChange;
+        MinArea = minArea;
+        WidthProp = widthProp;
+        HeightProp = heightProp;
+        XMarginMultiplier = xMarginMultiplier;
+        YMarginMultiplier = yMarginMultiplier;
+        RefreshInterval = refreshInterval;
+    }
 
     public void Start()
     {
         try
         {
-            grabber = new Emgu.CV.Capture();
+            grabber = new Emgu.CV.Capture(CameraId);
         }
         catch (Exception e)
         {
@@ -30,7 +185,7 @@ class GestureRecognition
         grabber.QueryFrame();
         box = new MCvBox2D();
 
-        nextTime = Time.time + Constants.REFRESH_INTERVAL;
+        nextTime = Time.time + refreshInterval;
     }
 
     public void Update()
@@ -38,11 +193,11 @@ class GestureRecognition
         if (Time.time >= nextTime)
         {
             FrameGrabber();
-            nextTime = Time.time + Constants.REFRESH_INTERVAL;
+            nextTime = Time.time + refreshInterval;
         }
     }
 
-    void FrameGrabber() 
+    void FrameGrabber()
     {
         currentFrame = grabber.QueryFrame();
 
@@ -51,15 +206,15 @@ class GestureRecognition
             if (!backgroundSaved)
             {
                 background = currentFrame.Copy();
-                background.Draw(new Rectangle(0, 0, currentFrame.Width / Constants.WIDTH_PROP, currentFrame.Height), new Bgr(0, 0, 0), 0);
-                background.Draw(new Rectangle(0, currentFrame.Height - currentFrame.Height / Constants.HEIGHT_PROP, currentFrame.Width, currentFrame.Height / Constants.HEIGHT_PROP), new Bgr(0, 0, 0), 0);
+                background.Draw(new Rectangle(0, 0, currentFrame.Width / widthProp, currentFrame.Height), new Bgr(0, 0, 0), 0);
+                background.Draw(new Rectangle(0, currentFrame.Height - currentFrame.Height / heightProp, currentFrame.Width, currentFrame.Height / heightProp), new Bgr(0, 0, 0), 0);
                 backgroundSaved = true;
             }
             else
             {
                 currentFrameCopy = currentFrame.Copy();
-                currentFrameCopy.Draw(new Rectangle(0, 0, currentFrame.Width / Constants.WIDTH_PROP, currentFrame.Height), new Bgr(0, 0, 0), 0);
-                currentFrameCopy.Draw(new Rectangle(0, currentFrame.Height - currentFrame.Height / Constants.HEIGHT_PROP, currentFrame.Width, currentFrame.Height / Constants.HEIGHT_PROP), new Bgr(0, 0, 0), 0);
+                currentFrameCopy.Draw(new Rectangle(0, 0, currentFrame.Width / widthProp, currentFrame.Height), new Bgr(0, 0, 0), 0);
+                currentFrameCopy.Draw(new Rectangle(0, currentFrame.Height - currentFrame.Height / heightProp, currentFrame.Width, currentFrame.Height / heightProp), new Bgr(0, 0, 0), 0);
                 Image<Gray, Byte> currentFrameGrey = currentFrameCopy.Convert<Gray, Byte>();
 
                 Image<Gray, Byte> backgroundGrey = background.Convert<Gray, Byte>();
@@ -93,15 +248,15 @@ class GestureRecognition
                     // Drawing
                     if (biggestContour != null)
                     {
-                        if (biggestContour.Area > Constants.MIN_AREA)
+                        if (biggestContour.Area > minArea)
                         {
                             Contour<Point> contour = biggestContour.ApproxPoly(biggestContour.Perimeter * 0.0025, storage);
                             currentFrame.Draw(contour, new Bgr(System.Drawing.Color.LimeGreen), 2);
 
                             box = biggestContour.GetMinAreaRect();
 
-                            xHandPosition = (box.center.X - (float)currentFrame.Width / Constants.WIDTH_PROP) / ((currentFrame.Width - (float)currentFrame.Width / Constants.WIDTH_PROP) * Constants.X_MARGIN_MULTIPLIER);
-                            yHandPosition = 1 - (box.center.Y - (float)currentFrame.Height / Constants.HEIGHT_PROP) / ((currentFrame.Height - (float)currentFrame.Height / Constants.HEIGHT_PROP) * Constants.Y_MARGIN_MULTIPLIER);
+                            XHandPosition = (box.center.X - (float)currentFrame.Width / widthProp) / ((currentFrame.Width - (float)currentFrame.Width / widthProp) * xMarginMultiplier);
+                            YHandPosition = 1 - (box.center.Y - (float)currentFrame.Height / heightProp) / ((currentFrame.Height - (float)currentFrame.Height / heightProp) * yMarginMultiplier);
 
                             defects = biggestContour.GetConvexityDefacts(storage, Emgu.CV.CvEnum.ORIENTATION.CV_CLOCKWISE);
                             defectArray = defects.ToArray();
@@ -136,62 +291,13 @@ class GestureRecognition
                         if (fingerNumCurrent == fingerNumLast) fingerCycleCount += 1;
                         else fingerCycleCount = 0;
 
-                        if (fingerCycleCount == Constants.CYCLES_TO_CHANGE_FINGER_NUM) fingerNumStable = fingerNumCurrent;
+                        if (fingerCycleCount == numCyclesFingerChange) FingerNumStable = fingerNumCurrent;
 
                         fingerNumLast = fingerNumCurrent;
                     }
                 }
                 #endregion
             }
-        }
-    }
-
-    public int getNumFingers()
-    {
-        return fingerNumStable;
-    }
-
-    public PointF getHandPosition()
-    {
-        return new PointF(xHandPosition, yHandPosition);
-    }
-
-    public float getAxis(String axis)
-    {
-        switch (axis)
-        {
-            case "Horizontal":
-                return getHandPosition().X;
-            case "Vertical":
-                return getHandPosition().Y;
-            case "RelativeHorizontal":
-                if (getHandPosition().X > 0.5)
-                {
-                    return 1;
-                }
-                else if (getHandPosition().X < 0.5)
-                {
-                    return -1;
-                }
-                else
-                {
-                    return 0;
-                }
-            case "RelativeVertical":
-                if (getHandPosition().Y > 0.5)
-                {
-                    return 1;
-                }
-                else if (getHandPosition().Y < 0.5)
-                {
-                    return -1;
-                }
-                else
-                {
-                    return 0;
-                }
-            default:
-                return 0;
         }
     }
 }
