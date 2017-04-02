@@ -34,30 +34,30 @@ public class GestureInputController : MonoBehaviour
         gr.Update();
     }
 
-    public int getDetectedFingersNumber()
+    public int GetDetectedFingersNumber()
     {
         return gr.FingerNumStable;
     }
 
-    public PointF getHandPosition()
+    public PointF GetHandPosition()
     {
         return new PointF(gr.XHandPosition, gr.YHandPosition);
     }
 
-    public float getAxis(String axis)
+    public float GetAxis(String axis)
     {
         switch (axis)
         {
             case "Horizontal":
-                return getHandPosition().X;
+                return GetHandPosition().X;
             case "Vertical":
-                return getHandPosition().Y;
+                return GetHandPosition().Y;
             case "RelativeHorizontal":
-                if (getHandPosition().X > 0.5)
+                if (GetHandPosition().X > 0.5)
                 {
                     return 1;
                 }
-                else if (getHandPosition().X < 0.5)
+                else if (GetHandPosition().X < 0.5)
                 {
                     return -1;
                 }
@@ -66,11 +66,11 @@ public class GestureInputController : MonoBehaviour
                     return 0;
                 }
             case "RelativeVertical":
-                if (getHandPosition().Y > 0.5)
+                if (GetHandPosition().Y > 0.5)
                 {
                     return 1;
                 }
-                else if (getHandPosition().Y < 0.5)
+                else if (GetHandPosition().Y < 0.5)
                 {
                     return -1;
                 }
