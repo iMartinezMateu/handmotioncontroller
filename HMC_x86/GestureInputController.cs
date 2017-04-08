@@ -9,7 +9,9 @@ public class GestureInputController : MonoBehaviour
     [SerializeField]
     private int numCyclesFingerChange = 3;
     [SerializeField]
-    private int minArea = 5000;
+    private int minArea = 20000;
+    [SerializeField]
+    private int maxArea = 45000;
     [SerializeField]
     private int widthProp = 3;
     [SerializeField]
@@ -25,7 +27,7 @@ public class GestureInputController : MonoBehaviour
 
     void Start()
     {
-        gr = new GestureRecognition(cameraId, numCyclesFingerChange, minArea, widthProp, heightProp, xMarginMultiplier, yMarginMultiplier, refreshInterval);
+        gr = new GestureRecognition(cameraId, numCyclesFingerChange, minArea, maxArea, widthProp, heightProp, xMarginMultiplier, yMarginMultiplier, refreshInterval);
         gr.Start();
     }
 

@@ -12,7 +12,7 @@ class GestureRecognition
     private Seq<MCvConvexityDefect> defects;
     private MCvConvexityDefect[] defectArray;
     private MCvBox2D box;
-    private int fingerNumStable = 0, fingerNumLast = 0, fingerNumCurrent = 0, fingerCycleCount = 0, cameraId = 0, numCyclesFingerChange = 3, minArea = 5000, widthProp = 3, heightProp = 4;
+    private int fingerNumStable = 0, fingerNumLast = 0, fingerNumCurrent = 0, fingerCycleCount = 0, cameraId = 0, numCyclesFingerChange = 3, minArea = 20000, maxArea = 45000, widthProp = 3, heightProp = 4;
     private float nextTime, xHandPosition = 0.5f, yHandPosition = 0.5f, xMarginMultiplier = 0.8f, yMarginMultiplier = 0.6f, refreshInterval = 0.1f;
 
     public int NumCyclesFingerChange
@@ -38,6 +38,19 @@ class GestureRecognition
         set
         {
             minArea = value;
+        }
+    }
+
+    public int MaxArea
+    {
+        get
+        {
+            return maxArea;
+        }
+
+        set
+        {
+            maxArea = value;
         }
     }
 
@@ -158,11 +171,12 @@ class GestureRecognition
         }
     }
 
-    public GestureRecognition(int cameraId, int numCyclesFingerChange, int minArea, int widthProp, int heightProp, float xMarginMultiplier, float yMarginMultiplier, float refreshInterval)
+    public GestureRecognition(int cameraId, int numCyclesFingerChange, int minArea, int maxArea, int widthProp, int heightProp, float xMarginMultiplier, float yMarginMultiplier, float refreshInterval)
     {
         CameraId = cameraId;
         NumCyclesFingerChange = numCyclesFingerChange;
         MinArea = minArea;
+        MaxArea = maxArea;
         WidthProp = widthProp;
         HeightProp = heightProp;
         XMarginMultiplier = xMarginMultiplier;
@@ -248,7 +262,7 @@ class GestureRecognition
                     // Drawing
                     if (biggestContour != null)
                     {
-                        if (biggestContour.Area > minArea)
+                        if (biggestContour.Area > minArea && biggestContour.Area < maxArea)
                         {
                             Contour<Point> contour = biggestContour.ApproxPoly(biggestContour.Perimeter * 0.0025, storage);
                             currentFrame.Draw(contour, new Bgr(System.Drawing.Color.LimeGreen), 2);
