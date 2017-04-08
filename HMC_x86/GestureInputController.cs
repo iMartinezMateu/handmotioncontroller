@@ -44,20 +44,52 @@ public class GestureInputController : MonoBehaviour
         return new PointF(gr.XHandPosition, gr.YHandPosition);
     }
 
+    public PointF GetNormalizedHandPosition()
+    {
+        float normalizedXHandPosition;
+        float normalizedYHandPosition;
+        if (gr.XHandPosition < 0.5)
+        {
+            normalizedXHandPosition = -gr.XHandPosition * 2;
+        }
+        else if (gr.XHandPosition == 0.5)
+        {
+            normalizedXHandPosition = 0;
+        }
+        else
+        {
+            normalizedXHandPosition = (gr.XHandPosition - 0.5f) * 2;
+        }
+
+        if (gr.YHandPosition < 0.5)
+        {
+            normalizedYHandPosition = -gr.XHandPosition * 2;
+        }
+        else if (gr.YHandPosition == 0.5)
+        {
+            normalizedYHandPosition = 0;
+        }
+        else
+        {
+            normalizedYHandPosition = (gr.YHandPosition - 0.5f) * 2;
+        }
+        return new PointF(normalizedXHandPosition, normalizedYHandPosition);
+    }
+
     public float GetAxis(String axis)
     {
         switch (axis)
         {
             case "Horizontal":
-                return GetHandPosition().X;
+                return GetNormalizedHandPosition().X;
             case "Vertical":
-                return GetHandPosition().Y;
+                return GetNormalizedHandPosition().Y;
             case "RelativeHorizontal":
-                if (GetHandPosition().X > 0.5)
+                if (GetNormalizedHandPosition().X > 0.5)
                 {
                     return 1;
                 }
-                else if (GetHandPosition().X < 0.5)
+                else if (GetNormalizedHandPosition().X < 0.5)
                 {
                     return -1;
                 }
@@ -66,11 +98,11 @@ public class GestureInputController : MonoBehaviour
                     return 0;
                 }
             case "RelativeVertical":
-                if (GetHandPosition().Y > 0.5)
+                if (GetNormalizedHandPosition().Y > 0.5)
                 {
                     return 1;
                 }
-                else if (GetHandPosition().Y < 0.5)
+                else if (GetNormalizedHandPosition().Y < 0.5)
                 {
                     return -1;
                 }
