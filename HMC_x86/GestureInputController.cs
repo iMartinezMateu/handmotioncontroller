@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Drawing;
+using Emgu.CV;
+using Emgu.CV.Structure;
 using UnityEngine;
 
 public class GestureInputController : MonoBehaviour
@@ -115,5 +117,15 @@ public class GestureInputController : MonoBehaviour
             default:
                 return 0;
         }
+    }
+
+    public Image<Bgr, byte> GetCapture()
+    {
+        return gr.CurrentFrame;
+    }
+
+    public Image<Gray, byte> GetThresholded()
+    {
+        return gr.Thresholded;
     }
 }

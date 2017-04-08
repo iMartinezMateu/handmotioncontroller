@@ -14,7 +14,7 @@ class GestureRecognition
     private MCvBox2D box;
     private int fingerNumStable = 0, fingerNumLast = 0, fingerNumCurrent = 0, fingerCycleCount = 0, cameraId = 0, numCyclesFingerChange = 3, minArea = 20000, maxArea = 45000, widthProp = 3, heightProp = 4;
     private float nextTime, xHandPosition = 0.5f, yHandPosition = 0.5f, xMarginMultiplier = 0.8f, yMarginMultiplier = 0.6f, refreshInterval = 0.1f;
-
+    private Image<Gray, byte> thresholded;
     public int NumCyclesFingerChange
     {
         get
@@ -171,6 +171,32 @@ class GestureRecognition
         }
     }
 
+    public Image<Bgr, byte> CurrentFrame
+    {
+        get
+        {
+            return currentFrame;
+        }
+
+        set
+        {
+            currentFrame = value;
+        }
+    }
+
+    public Image<Gray, byte> Thresholded
+    {
+        get
+        {
+            return thresholded;
+        }
+
+        set
+        {
+            thresholded = value;
+        }
+    }
+
     public GestureRecognition(int cameraId, int numCyclesFingerChange, int minArea, int maxArea, int widthProp, int heightProp, float xMarginMultiplier, float yMarginMultiplier, float refreshInterval)
     {
         CameraId = cameraId;
@@ -213,37 +239,37 @@ class GestureRecognition
 
     void FrameGrabber()
     {
-        currentFrame = grabber.QueryFrame();
+        CurrentFrame = grabber.QueryFrame();
 
-        if (currentFrame != null)
+        if (CurrentFrame != null)
         {
             if (!backgroundSaved)
             {
-                background = currentFrame.Copy();
-                background.Draw(new Rectangle(0, 0, currentFrame.Width / widthProp, currentFrame.Height), new Bgr(0, 0, 0), 0);
-                background.Draw(new Rectangle(0, currentFrame.Height - currentFrame.Height / heightProp, currentFrame.Width, currentFrame.Height / heightProp), new Bgr(0, 0, 0), 0);
+                background = CurrentFrame.Copy();
+                background.Draw(new Rectangle(0, 0, CurrentFrame.Width / widthProp, CurrentFrame.Height), new Bgr(0, 0, 0), 0);
+                background.Draw(new Rectangle(0, CurrentFrame.Height - CurrentFrame.Height / heightProp, CurrentFrame.Width, CurrentFrame.Height / heightProp), new Bgr(0, 0, 0), 0);
                 backgroundSaved = true;
             }
             else
             {
-                currentFrameCopy = currentFrame.Copy();
-                currentFrameCopy.Draw(new Rectangle(0, 0, currentFrame.Width / widthProp, currentFrame.Height), new Bgr(0, 0, 0), 0);
-                currentFrameCopy.Draw(new Rectangle(0, currentFrame.Height - currentFrame.Height / heightProp, currentFrame.Width, currentFrame.Height / heightProp), new Bgr(0, 0, 0), 0);
+                currentFrameCopy = CurrentFrame.Copy();
+                currentFrameCopy.Draw(new Rectangle(0, 0, CurrentFrame.Width / widthProp, CurrentFrame.Height), new Bgr(0, 0, 0), 0);
+                currentFrameCopy.Draw(new Rectangle(0, CurrentFrame.Height - CurrentFrame.Height / heightProp, CurrentFrame.Width, CurrentFrame.Height / heightProp), new Bgr(0, 0, 0), 0);
                 Image<Gray, Byte> currentFrameGrey = currentFrameCopy.Convert<Gray, Byte>();
 
                 Image<Gray, Byte> backgroundGrey = background.Convert<Gray, Byte>();
                 Image<Gray, Byte> currentFrameCopyGreyDiff = currentFrameCopy.CopyBlank().Convert<Gray, Byte>();
 
                 CvInvoke.cvAbsDiff(backgroundGrey, currentFrameGrey, currentFrameCopyGreyDiff);
-                Image<Gray, Byte> thresholded = currentFrameCopyGreyDiff.ThresholdBinary(new Gray(20), new Gray(255));
+                Thresholded = currentFrameCopyGreyDiff.ThresholdBinary(new Gray(20), new Gray(255));
 
-                CvInvoke.cvSmooth(thresholded, thresholded, Emgu.CV.CvEnum.SMOOTH_TYPE.CV_BLUR, 13, 13, 1.5, 0);
-                CvInvoke.cvSmooth(thresholded, thresholded, Emgu.CV.CvEnum.SMOOTH_TYPE.CV_GAUSSIAN, 13, 13, 1.5, 0);
+                CvInvoke.cvSmooth(Thresholded, Thresholded, Emgu.CV.CvEnum.SMOOTH_TYPE.CV_BLUR, 13, 13, 1.5, 0);
+                CvInvoke.cvSmooth(Thresholded, Thresholded, Emgu.CV.CvEnum.SMOOTH_TYPE.CV_GAUSSIAN, 13, 13, 1.5, 0);
 
                 #region draw and extract num
                 using (MemStorage storage = new MemStorage())
                 {
-                    Contour<Point> contours = thresholded.FindContours(Emgu.CV.CvEnum.CHAIN_APPROX_METHOD.CV_CHAIN_APPROX_SIMPLE, Emgu.CV.CvEnum.RETR_TYPE.CV_RETR_LIST, storage);
+                    Contour<Point> contours = Thresholded.FindContours(Emgu.CV.CvEnum.CHAIN_APPROX_METHOD.CV_CHAIN_APPROX_SIMPLE, Emgu.CV.CvEnum.RETR_TYPE.CV_RETR_LIST, storage);
 
                     Double Result1 = 0;
                     Double Result2 = 0;
@@ -265,12 +291,12 @@ class GestureRecognition
                         if (biggestContour.Area > minArea && biggestContour.Area < maxArea)
                         {
                             Contour<Point> contour = biggestContour.ApproxPoly(biggestContour.Perimeter * 0.0025, storage);
-                            currentFrame.Draw(contour, new Bgr(System.Drawing.Color.LimeGreen), 2);
+                            CurrentFrame.Draw(contour, new Bgr(System.Drawing.Color.LimeGreen), 2);
 
                             box = biggestContour.GetMinAreaRect();
-
-                            XHandPosition = (box.center.X - (float)currentFrame.Width / widthProp) / ((currentFrame.Width - (float)currentFrame.Width / widthProp) * xMarginMultiplier);
-                            YHandPosition = 1 - (box.center.Y - (float)currentFrame.Height / heightProp) / ((currentFrame.Height - (float)currentFrame.Height / heightProp) * yMarginMultiplier);
+                            currentFrame.Draw(new CircleF(new PointF(box.center.X, box.center.Y), 3), new Bgr(200, 125, 75), 2);
+                            XHandPosition = (box.center.X - (float)CurrentFrame.Width / widthProp) / ((CurrentFrame.Width - (float)CurrentFrame.Width / widthProp) * xMarginMultiplier);
+                            YHandPosition = 1 - (box.center.Y - (float)CurrentFrame.Height / heightProp) / ((CurrentFrame.Height - (float)CurrentFrame.Height / heightProp) * yMarginMultiplier);
 
                             defects = biggestContour.GetConvexityDefacts(storage, Emgu.CV.CvEnum.ORIENTATION.CV_CLOCKWISE);
                             defectArray = defects.ToArray();
@@ -286,6 +312,10 @@ class GestureRecognition
                                 PointF depthPoint = new PointF((float)defectArray[i].DepthPoint.X,
                                                                 (float)defectArray[i].DepthPoint.Y);
 
+                                LineSegment2D startDepthLine = new LineSegment2D(defectArray[i].StartPoint, defectArray[i].DepthPoint);
+
+                                LineSegment2D depthEndLine = new LineSegment2D(defectArray[i].DepthPoint, defectArray[i].EndPoint);
+
                                 CircleF startCircle = new CircleF(startPoint, 5f);
 
                                 CircleF depthCircle = new CircleF(depthPoint, 5f);
@@ -294,7 +324,10 @@ class GestureRecognition
                                 if ((startCircle.Center.Y < box.center.Y || depthCircle.Center.Y < box.center.Y) && (startCircle.Center.Y < depthCircle.Center.Y) && (Math.Sqrt(Math.Pow(startCircle.Center.X - depthCircle.Center.X, 2) + Math.Pow(startCircle.Center.Y - depthCircle.Center.Y, 2)) > box.size.Height / 6.5))
                                 {
                                     fingerNumCurrent++;
+                                    currentFrame.Draw(startDepthLine, new Bgr(System.Drawing.Color.Green), 2);
                                 }
+                                currentFrame.Draw(startCircle, new Bgr(System.Drawing.Color.Red), 2);
+                                currentFrame.Draw(depthCircle, new Bgr(System.Drawing.Color.Yellow), 5);
                             }
                         }
                         else
@@ -308,6 +341,8 @@ class GestureRecognition
                         if (fingerCycleCount == numCyclesFingerChange) FingerNumStable = fingerNumCurrent;
 
                         fingerNumLast = fingerNumCurrent;
+                        MCvFont font = new MCvFont(Emgu.CV.CvEnum.FONT.CV_FONT_HERSHEY_DUPLEX, 5d, 5d);
+                        currentFrame.Draw(fingerNumStable.ToString(), ref font, new Point(50, 150), new Bgr(System.Drawing.Color.White));
                     }
                 }
                 #endregion
